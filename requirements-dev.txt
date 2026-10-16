@@ -1,0 +1,4 @@
+# The Skill's tests compare its exit-code table with the CLI's own, so they need the package the
+# Skill drives. 0.2.0 is the first release that reads ETLGEN_API_KEY.
+etlgen-client>=0.2.0
+pytest>=8.0
