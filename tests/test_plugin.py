@@ -97,14 +97,45 @@ def test_the_skill_keeps_each_rule(body, rule):
     assert rule in body
 
 
-def test_the_key_is_only_ever_mentioned_to_check_it_is_set_or_to_forbid_looking_at_it(body):
-    permitted = ['[ -n "$ETLGEN_API_KEY" ]', "echo $ETLGEN_API_KEY"]
-    rest = body
-    for text in permitted:
-        rest = rest.replace(text, "")
+def test_the_key_variable_is_only_ever_mentioned_to_forbid_looking_at_it(body):
+    # The setup is checked by `etlgen billing get`, so no shell command tests the variable (such a
+    # command needs a permission prompt each time, and a model that was never told to do it does not).
+    rest = body.replace("echo $ETLGEN_API_KEY", "")
 
     assert "$ETLGEN_API_KEY" not in rest
+    assert "$ETLGEN_BASE_URL" not in rest
+    assert "[ -n" not in body
     assert "Do not run `env`, `printenv`, `set` or `echo $ETLGEN_API_KEY`" in body
+
+
+def test_the_setup_is_checked_by_a_free_read_that_prints_neither_the_key_nor_the_address(body):
+    before_the_flow = body[body.index("## Before the first call"):body.index("## The flow")]
+
+    assert "`etlgen billing get` succeeds" in before_the_flow
+    assert "neither the key nor the address" in before_the_flow
+    assert "rule 4 compares against it" in before_the_flow
+
+
+def _skill_json_example() -> dict:
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    block = re.search(r"```json\n(.*?)\n   ```", text, re.S)
+    assert block, "the Skill has no params example"
+    return json.loads(block.group(1))
+
+
+def test_the_params_example_is_one_the_estimate_accepts(body):
+    # The estimate rejects any key besides source and destination (etlgen_client's
+    # GenerateNamespace.estimate takes exactly those two), and the Skill reuses this file for it.
+    assert set(_skill_json_example()) == {"source", "destination"}
+    assert "rejects any other key" in body
+
+
+def test_include_tests_is_added_for_the_generate_step_only(body):
+    estimate_step = body.index("3. **Estimate:**")
+    generate_step = body.index("4. **Generate, only after the yes:**")
+
+    assert 'add `"include_tests": true`' in body[generate_step:]
+    assert "include_tests" not in body[estimate_step:generate_step]
 
 
 def test_estimate_is_named_before_any_paid_command_and_the_yes_before_the_first_paid_command(body):

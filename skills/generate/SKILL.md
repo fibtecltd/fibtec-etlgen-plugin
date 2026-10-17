@@ -13,11 +13,11 @@ reference and write the results to disk. Do not paste schemas into the conversat
 
 1. **Never print, echo, log, write to a file or commit the API key.** It is read from the environment
    variable `ETLGEN_API_KEY` and is never passed as a command-line argument (the command has no flag for
-   it; `--token` is for a different credential, so do not use that either). To check that it is set without
-   showing it, run
-   `[ -n "$ETLGEN_API_KEY" ] && echo "key is set"`. Do not run `env`, `printenv`, `set` or
-   `echo $ETLGEN_API_KEY`, and do not read shell profile files to look for it. If it is missing, tell the user
-   how to set it (the plugin's README) and stop. Never ask them to paste it into the chat.
+   it; `--token` is for a different credential, so do not use that either). The setup is checked by running
+   `etlgen billing get` (see "Before the first call"), not by testing the variable in the shell. Do not run
+   `env`, `printenv`, `set` or `echo $ETLGEN_API_KEY`, and do not read shell profile files to look for it. If it
+   is missing, tell the user how to set it (the plugin's README) and stop. Never ask them to paste it into the
+   chat.
 2. **Estimate, then ask, then generate.** `etlgen generate estimate` is free and writes nothing. Show the
    user the tier and the price, and wait for an explicit yes before running `etlgen generate etl`,
    `connector` or `webhook`, which spend credit (or a free-plan request). Ask again for each job: a yes to
@@ -38,8 +38,11 @@ reference and write the results to disk. Do not paste schemas into the conversat
 
 - `etlgen --version` prints 0.2.0 or later. If the command is missing or older, suggest
   `pip install --upgrade etlgen-client` and stop.
-- `ETLGEN_API_KEY` is set (rule 1) and `ETLGEN_BASE_URL` is set, with `[ -n "$ETLGEN_BASE_URL" ]`. The base URL
-  is the address of the key API (an `https` address), not the portal's.
+- `etlgen billing get` succeeds. It is free, it prints the plan and the balance (note the balance: rule 4
+  compares against it) and neither the key nor the address, and it fails with a clear message when
+  `ETLGEN_API_KEY` or `ETLGEN_BASE_URL` is not set (rule 1). The base URL is the address of the key API (an
+  `https` address), not the portal's. It needs a key with the Read access, as the estimate does; on exit 3 see
+  the table below.
 
 ## The flow
 
@@ -51,16 +54,17 @@ reference and write the results to disk. Do not paste schemas into the conversat
    ```json
    {
      "source":      {"format": "xsd",         "content": "@file:customer.xsd"},
-     "destination": {"format": "json_schema", "content": "@file:customer.schema.json"},
-     "include_tests": true
+     "destination": {"format": "json_schema", "content": "@file:customer.schema.json"}
    }
    ```
 
-   `include_tests` adds a pytest file to the same job at no extra price.
+   The estimate takes `source` and `destination` only and rejects any other key. For the generate step (4) the
+   file gains `"include_tests": true`, which adds a pytest file to the same job at no extra price.
 3. **Estimate:** `etlgen generate estimate --params "$PARAMS"`. The JSON has `tier`,
    `price_expected_gbp_pence` (pence, so 200 is £2.00), `dev_cost_gbp_pence` and `dev_hours`. Tell the user
    the tier, the price in pounds and the by-hand baseline, and ask whether to generate.
-4. **Generate, only after the yes:** `etlgen generate etl --params "$PARAMS" --out-dir "$DIR"`.
+4. **Generate, only after the yes:** add `"include_tests": true` to the params file, then run
+   `etlgen generate etl --params "$PARAMS" --out-dir "$DIR"`.
    `--out-dir` **overwrites** existing files of the same name (`etl_job.py`, and `test_etl_job.py` with
    tests), so choose a directory that does not hold files to keep (for example `./generated`) and tell the
    user the path before running. The command prints a summary without the file bodies: the `pricing`, the
