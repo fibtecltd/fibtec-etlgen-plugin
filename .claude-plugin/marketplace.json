@@ -1,0 +1,12 @@
+{
+  "name": "fibtec-etlgen",
+  "description": "Fibtec's ETL Integrator plugin for Claude Code",
+  "owner": { "name": "Fibtec Limited" },
+  "plugins": [
+    {
+      "name": "etlgen",
+      "source": "./",
+      "description": "Generate ETL scripts, connectors and webhook handlers with Fibtec's ETL Integrator"
+    }
+  ]
+}
