@@ -130,6 +130,15 @@ def test_the_params_example_is_one_the_estimate_accepts(body):
     assert "rejects any other key" in body
 
 
+def test_the_users_files_are_never_moved_to_make_room_for_the_output(body):
+    # A real run backed up the user's own etl_job.py next to it before asking; the user never asked for a file
+    # to be written into their project, and the overwrite warning plus another directory is the whole remedy.
+    generate_step = body[body.index("4. **Generate, only after the yes:**"):]
+
+    assert "do not copy, back up, move or delete them to make room" in generate_step
+    assert "pick another directory, or ask the user which to use" in generate_step
+
+
 def test_include_tests_is_added_for_the_generate_step_only(body):
     estimate_step = body.index("3. **Estimate:**")
     generate_step = body.index("4. **Generate, only after the yes:**")

@@ -67,7 +67,8 @@ reference and write the results to disk. Do not paste schemas into the conversat
    `etlgen generate etl --params "$PARAMS" --out-dir "$DIR"`.
    `--out-dir` **overwrites** existing files of the same name (`etl_job.py`, and `test_etl_job.py` with
    tests), so choose a directory that does not hold files to keep (for example `./generated`) and tell the
-   user the path before running. The command prints a summary without the file bodies: the `pricing`, the
+   user the path before running. If the directory you would choose already holds files, do not copy, back up,
+   move or delete them to make room: pick another directory, or ask the user which to use. The command prints a summary without the file bodies: the `pricing`, the
    `unresolved_fields` and the Iron Triangle `triangle`.
 5. **Read the exit code** (next section), then report: the files written, the price charged, and any
    `unresolved_fields` by name. Suggest reviewing the script and running `pytest` on the generated tests.
