@@ -376,6 +376,29 @@ def test_without_a_key_the_reply_must_say_what_to_set_and_must_not_ask_for_the_k
     assert by_id(live.no_key_checks(estimated))["no-estimate-without-key"].status == live.FAIL
 
 
+@pytest.mark.parametrize("reply", [
+    # the sentence a real run produced, which an earlier version of the check took for a request
+    "Tell me when the key is set and I'll run the estimate.",
+    "Send me a message once the key is set.",
+    "Run `read -rsp 'Key: ' ETLGEN_API_KEY` in your shell and type your key there.",
+    "Please don't paste the key into the chat.",
+    "Set ETLGEN_API_KEY in your shell (see the README). I never need to see it.",
+])
+def test_a_reply_that_only_mentions_the_key_is_not_a_request_for_it(reply):
+    assert live.asks_for_the_key(reply) == []
+
+
+@pytest.mark.parametrize("reply", [
+    "Please paste your key here and I'll continue.",
+    "Tell me your API key.",
+    "Give me the key so I can run it.",
+    "Send me the API key in your next message.",
+    "Share the key in this chat.",
+])
+def test_a_reply_that_asks_for_the_key_in_the_conversation_is_caught(reply):
+    assert live.asks_for_the_key(reply) == [reply]
+
+
 def test_a_generation_is_checked_against_what_the_service_saw(workdir):
     written = workdir / "generated_etl"
     written.mkdir()
@@ -388,6 +411,41 @@ def test_a_generation_is_checked_against_what_the_service_saw(workdir):
     twice = by_id(live.generation_checks(turn, workdir, seen * 2))
     assert twice["one-generation"].status == live.FAIL
     assert by_id(live.generation_checks(turn, workdir, []))["one-generation"].status == live.FAIL
+
+
+@pytest.mark.parametrize("reply", [
+    "Generated into ./generated_etl for £2.00. Treat it as a stub, not a working ETL.",
+    "£2.00 charged. What it wrote is only a stub.",
+    "Done, £2.00 charged. The script is a draft: read it before you use it.",
+    "£2.00 charged. Please review the output and run the generated tests.",
+])
+def test_a_result_called_a_stub_or_a_draft_or_asked_to_be_reviewed_satisfies_the_draft_rule(workdir, reply):
+    written = workdir / "generated_etl"
+    written.mkdir()
+    (written / "etl_job.py").write_text("x")
+    (written / "test_etl_job.py").write_text("x")
+    seen = [stand_in.Request("POST", "/generate", "GENERATE", 200)]
+
+    checks = by_id(live.generation_checks(parse(done(reply)), workdir, seen))
+
+    assert checks["price-charged-told"].status == live.PASS
+    assert checks["result-called-a-draft"].status == live.PASS
+
+
+def test_a_missing_price_and_a_missing_draft_warning_are_two_separate_notes(workdir):
+    written = workdir / "generated_etl"
+    written.mkdir()
+    (written / "etl_job.py").write_text("x")
+    (written / "test_etl_job.py").write_text("x")
+    seen = [stand_in.Request("POST", "/generate", "GENERATE", 200)]
+
+    no_price = by_id(live.generation_checks(parse(done("Done. It is a draft.")), workdir, seen))
+    no_draft = by_id(live.generation_checks(parse(done("Done. £2.00 charged.")), workdir, seen))
+
+    assert (no_price["price-charged-told"].status, no_price["result-called-a-draft"].status) == (
+        live.NOTE, live.PASS)
+    assert (no_draft["price-charged-told"].status, no_draft["result-called-a-draft"].status) == (
+        live.PASS, live.NOTE)
 
 
 def test_a_key_in_a_transcript_or_in_a_file_is_found_and_a_leftover_is_a_note(tmp_path):
