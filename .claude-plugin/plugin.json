@@ -1,7 +1,7 @@
 {
   "name": "etlgen",
   "displayName": "ETL Integrator",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Generate ETL scripts, REST and GraphQL connectors and webhook handlers with Fibtec's ETL Integrator, from Claude Code. Drives the etlgen command-line client.",
   "author": { "name": "Fibtec Limited" },
   "homepage": "https://etlgen.fibtec.co.uk",
