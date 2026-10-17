@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -695,3 +696,29 @@ def test_no_option_takes_a_key():
         live.parse_args(["--api-key", "x"])
     with pytest.raises(SystemExit):
         live.parse_args(["--token", "x"])
+
+
+# -- the container wrapper -------------------------------------------------------------------------
+
+WRAPPER = SCRIPTS / "in-claude-docker.sh"
+
+
+def test_the_container_wrapper_is_valid_bash_and_does_what_its_header_says():
+    subprocess.run(["bash", "-n", str(WRAPPER)], check=True)
+    text = WRAPPER.read_text()
+
+    # it restores the login the bypassed entrypoint would have, then drops root the way the entrypoint does
+    assert "persisted=/home/claude/.claude-persist/.claude.json" in text
+    assert 'cp "$persisted" /home/claude/.claude.json' in text and "gosu claude" in text
+    # Debian's pip refuses system-wide installs without this; and no key or key flag is written into it
+    assert "PIP_BREAK_SYSTEM_PACKAGES=1" in text and "--user" in text
+    assert not any(token in text for token in ("ETLGEN_API_KEY=", "--api-key", "--token"))
+
+
+def test_the_container_wrapper_hands_its_arguments_to_the_runner(monkeypatch):
+    monkeypatch.setenv("PATH", f"{Path(sys.executable).parent}{os.pathsep}{os.environ['PATH']}")
+
+    done = subprocess.run(["bash", str(WRAPPER), "--only", "nonsense"], capture_output=True, text=True,
+                          timeout=60, check=False)
+
+    assert done.returncode == 2 and "unknown scenario" in done.stderr

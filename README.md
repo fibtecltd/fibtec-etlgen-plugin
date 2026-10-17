@@ -95,6 +95,10 @@ export ETLGEN_BASE_URL=https://<key-api-id>.execute-api.<region>.amazonaws.com
 python scripts/plugin_live_tests.py
 ```
 
+In the claude-docker container the same run is a `docker compose run ... scripts/in-claude-docker.sh`; the
+header of that script has the exact commands (it restores the container's Claude login, installs `etlgen` and
+mounts this repository, which the compose file does not).
+
 It costs model usage (about eight `claude -p` turns). With a real key it first proves the key is Read-only
 (a free review is refused) and never allows a paid command otherwise. Reports and transcripts, with the key
 masked, go to `reports/` (not committed). Exit 0 means no rule was broken; **NOTE** lines are worth a read.
