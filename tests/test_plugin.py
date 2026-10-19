@@ -1,6 +1,5 @@
 """Tests of the plugin's text and manifests. No network, no model: they check that the Skill still says
-what E18's design (docs/fibtec-etlgen-e18-design-spec.md in fibtecltd/fibtec-etlgen, section 5 and 6)
-requires, that its exit-code table matches the CLI's own, and that the repository holds no secret and no
+what the plugin's design requires (an estimate before any paid call, the key never printed, ...), that its exit-code table matches the CLI's own, and that the repository holds no secret and no
 deployment value.
 
 The exit-code test imports the package the Skill drives (`pip install -r requirements-dev.txt`): the point is
@@ -316,3 +315,13 @@ def test_no_file_holds_a_real_deployment_address():
     ]
 
     assert not found, f"a real execute-api address is in {found}"
+
+
+def test_ci_has_the_one_job_the_branch_ruleset_requires():
+    # The repository's ruleset requires a check called `validate`; a renamed job would block every
+    # pull request waiting for a check that never reports.
+    text = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    jobs = text.split("\njobs:\n", 1)[1]
+
+    assert re.findall(r"^  ([A-Za-z0-9_-]+):\s*$", jobs, re.M) == ["validate"]
+    assert "run: claude plugin validate . --strict" in text and "run: pytest" in text

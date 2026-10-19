@@ -1,6 +1,6 @@
 # fibtec-etlgen-plugin
 
-A [Claude Code](https://claude.com/claude-code) plugin for [Fibtec's ETL Integrator](https://etlgen.fibtec.co.uk):
+**Status: alpha (0.1.x).** A [Claude Code](https://claude.com/claude-code) plugin for [Fibtec's ETL Integrator](https://etlgen.fibtec.co.uk):
 describe a source and a destination (an XSD, a JSON Schema, a CSV sample, SQL DDL and others) and get back the
 Python that connects them, or a REST or GraphQL connector, or a webhook handler.
 
@@ -26,9 +26,6 @@ are written to disk, not carried through the conversation.
 - An ETL Integrator **API key** and the address of the **key API**, below.
 
 ## Install
-
-This repository is private to Fibtec, so Claude Code needs git access to it (for example
-`gh auth login` then `gh auth setup-git`). Then:
 
 ```bash
 claude plugin marketplace add fibtecltd/fibtec-etlgen-plugin
@@ -95,9 +92,8 @@ export ETLGEN_BASE_URL=https://<key-api-id>.execute-api.<region>.amazonaws.com
 python scripts/plugin_live_tests.py
 ```
 
-In the claude-docker container the same run is a `docker compose run ... scripts/in-claude-docker.sh`; the
-header of that script has the exact commands (it restores the container's Claude login, installs `etlgen` and
-mounts this repository, which the compose file does not).
+To run the same thing in a container, `scripts/in-claude-docker.sh` restores a Claude login, installs `etlgen`
+and runs the tests; its header has the exact commands.
 
 It costs model usage (about eight `claude -p` turns). With a real key it first proves the key is Read-only
 (a free review is refused) and never allows a paid command otherwise. Reports and transcripts, with the key

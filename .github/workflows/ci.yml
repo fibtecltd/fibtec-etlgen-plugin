@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# One job, called `validate`: the repository's branch ruleset requires that check by name.
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      # Unpinned on purpose: when Claude Code tightens what it accepts in a plugin, this is where it shows.
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: claude plugin validate --strict
+        run: claude plugin validate . --strict
+
+      - name: Install the test dependencies (the published etlgen-client, pytest)
+        run: pip install -r requirements-dev.txt
+
+      - name: Tests (no model, no network)
+        run: pytest -q
