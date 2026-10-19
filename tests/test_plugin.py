@@ -250,6 +250,17 @@ def test_the_plugin_is_named_etlgen_and_has_the_metadata_the_listing_needs(plugi
     assert plugin["description"]
 
 
+def test_the_listing_links_are_https_and_the_policies_are_on_the_products_own_site(plugin):
+    # the directory reads these four from plugin.json; the privacy policy is what the submission's
+    # acknowledgement ("accurately describes the data it handles") is about
+    for key in ("documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"):
+        assert plugin[key].startswith("https://"), key
+    assert plugin["privacyPolicyUrl"] == plugin["homepage"] + "/privacy.html"
+    assert plugin["termsOfServiceUrl"] == plugin["homepage"] + "/terms.html"
+    assert plugin["supportUrl"] == plugin["repository"] + "/issues"
+    assert plugin["supportUrl"] in README_PATH.read_text(encoding="utf-8")
+
+
 def test_the_licence_field_matches_the_licence_file(plugin):
     assert plugin["license"] == "Apache-2.0"
     assert (PLUGIN_DIR / "LICENSE").read_text(encoding="utf-8").lstrip().startswith("Apache License")
