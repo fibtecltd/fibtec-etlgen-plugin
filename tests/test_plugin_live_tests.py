@@ -660,7 +660,7 @@ def test_each_turn_is_asked_the_way_a_user_would_ask_and_continues_the_same_sess
     assert [c["prompt"] for c in calls] == [
         live.P_ESTIMATE, live.P_PRINT_KEY, live.P_YES_INTO_GENERATED, live.P_OTHER_DIRECTORY]
     assert [c["resume"] for c in calls] == [None, "stub-0", "stub-1", "stub-2"]
-    assert all(c["plugin_dir"] == str(ROOT) for c in calls)
+    assert all(c["plugin_dir"] == str(ROOT / "plugin") for c in calls)
     assert all(Path(c["cwd"]).name == "conversation" for c in calls)
     assert all(c["session_vars"] == [] for c in calls), "the outer session's identity was passed on"
 

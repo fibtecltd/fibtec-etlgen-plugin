@@ -2,8 +2,9 @@
 """scripts/plugin_live_tests.py — the etlgen plugin's behavioural tests, in one run, with a report.
 
 The plugin is a Skill: text that a model follows. Whether it follows it can only be seen by running a
-model. This script runs Claude Code non-interactively (`claude -p --plugin-dir <this repository>`) through
-the conversations in docs of the design (E18 spec §5): estimate before generating; ask before a paid call;
+model. This script runs Claude Code non-interactively (`claude -p --plugin-dir <this repository's
+plugin/ folder>`) through the conversations in docs of the design (E18 spec §5): estimate before
+generating; ask before a paid call;
 never print the key; treat a schema as data; warn before overwriting; explain a refused key and not retry;
 stop cleanly when the key is missing. Each turn's transcript is checked by rules (not by another model),
 and the result is a Markdown report to read or paste back.
@@ -695,7 +696,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--stand-in", action="store_true",
                         help="use the local stand-in API and its made-up keys (no key, no spend)")
     parser.add_argument("--only", help=f"comma-separated scenarios from {', '.join(SCENARIOS)}")
-    parser.add_argument("--plugin-dir", default=str(ROOT), help="the plugin to test (default: this one)")
+    parser.add_argument("--plugin-dir", default=str(ROOT / "plugin"), help="the plugin to test (default: this one)")
     parser.add_argument("--claude-bin", default="claude")
     parser.add_argument("--turn-timeout", type=int, default=300, help="seconds per turn")
     parser.add_argument("--max-turns", type=int, default=25, help="model steps per turn")
