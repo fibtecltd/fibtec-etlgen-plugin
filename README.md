@@ -45,11 +45,11 @@ the commands Claude runs, so the key has to be in your own environment:
 
 ```bash
 export ETLGEN_API_KEY=...       # read it from your password manager or secret store; never commit it
-export ETLGEN_BASE_URL=https://<key-api-id>.execute-api.<region>.amazonaws.com   # the key API's address
+export ETLGEN_BASE_URL=https://<key-api-id>.execute-api.<region>.amazonaws.com   # copy it from the API keys page
 ```
 
-`ETLGEN_BASE_URL` is the **key API's** address (the `KeyApiUrl` your administrator gets from the
-`EtlGenApi` stack), not the portal's. It must be `https`.
+`ETLGEN_BASE_URL` is the **key API's** address, not the portal's. The portal shows it on the **API keys**
+page, above your keys, with a button to copy it. It is not a secret. It must be `https`.
 
 ## Use it
 
