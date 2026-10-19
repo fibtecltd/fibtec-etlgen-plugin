@@ -10,15 +10,18 @@ from __future__ import annotations
 
 import json
 import re
+import struct
 from pathlib import Path
 
 import pytest
 from etlgen_client import cli
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL_PATH = ROOT / "skills" / "generate" / "SKILL.md"
-README_PATH = ROOT / "README.md"
-PLUGIN_PATH = ROOT / ".claude-plugin" / "plugin.json"
+PLUGIN_DIR = ROOT / "plugin"  # the plugin: the only folder an installer gets and the directory scans
+SKILL_PATH = PLUGIN_DIR / "skills" / "generate" / "SKILL.md"
+README_PATH = PLUGIN_DIR / "README.md"
+PLUGIN_PATH = PLUGIN_DIR / ".claude-plugin" / "plugin.json"
+ICON_PATH = PLUGIN_DIR / ".claude-plugin" / "icon.png"
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
 REQUIREMENTS_PATH = ROOT / "requirements-dev.txt"
 
@@ -249,14 +252,18 @@ def test_the_plugin_is_named_etlgen_and_has_the_metadata_the_listing_needs(plugi
 
 def test_the_licence_field_matches_the_licence_file(plugin):
     assert plugin["license"] == "Apache-2.0"
-    assert (ROOT / "LICENSE").read_text(encoding="utf-8").lstrip().startswith("Apache License")
+    assert (PLUGIN_DIR / "LICENSE").read_text(encoding="utf-8").lstrip().startswith("Apache License")
 
 
-def test_the_marketplace_lists_this_one_plugin_at_the_repository_root(plugin, marketplace):
+def test_the_repository_and_the_plugin_carry_the_same_licence_text():
+    assert (ROOT / "LICENSE").read_bytes() == (PLUGIN_DIR / "LICENSE").read_bytes()
+
+
+def test_the_marketplace_lists_this_one_plugin_in_the_plugin_folder(plugin, marketplace):
     (entry,) = marketplace["plugins"]
 
     assert entry["name"] == plugin["name"]
-    assert entry["source"] in ("./", ".")
+    assert entry["source"] == "./plugin"  # not the repository root: see test_the_plugin_folder_*
     assert marketplace["owner"]["name"]
     assert marketplace["name"] != plugin["name"]
 
@@ -280,7 +287,8 @@ def test_the_readme_gives_the_install_commands_and_the_two_environment_variables
 
 def _text_files() -> list[Path]:
     """The repository's own files: not git's, and not a tool's cache (`.ruff_cache`, `__pycache__`...).
-    The only dot-directory that holds the repository's own files is `.claude-plugin`."""
+    The only dot-directory that holds the repository's own files is `.claude-plugin` (twice: the
+    marketplace's and the plugin's)."""
     def own(path: Path) -> bool:
         directories = path.relative_to(ROOT).parts[:-1]
         return all(part == ".claude-plugin" or not part.startswith((".", "__")) for part in directories)
@@ -294,7 +302,10 @@ def _text_files() -> list[Path]:
 def test_the_scan_covers_the_files_it_should_and_skips_caches():
     names = {str(path.relative_to(ROOT)) for path in _text_files()}
 
-    assert {"README.md", "skills/generate/SKILL.md", ".claude-plugin/plugin.json"} <= names
+    assert {
+        "README.md", "plugin/README.md", "plugin/skills/generate/SKILL.md",
+        "plugin/.claude-plugin/plugin.json", ".claude-plugin/marketplace.json",
+    } <= names
     assert not [name for name in names if name.startswith((".ruff_cache", ".git/", "__pycache__"))]
 
 
@@ -324,4 +335,67 @@ def test_ci_has_the_one_job_the_branch_ruleset_requires():
     jobs = text.split("\njobs:\n", 1)[1]
 
     assert re.findall(r"^  ([A-Za-z0-9_-]+):\s*$", jobs, re.M) == ["validate"]
-    assert "run: claude plugin validate . --strict" in text and "run: pytest" in text
+    # the marketplace and the plugin are validated separately, strictly
+    assert "run: claude plugin validate . --strict" in text
+    assert "run: claude plugin validate ./plugin --strict" in text
+    assert "run: pytest" in text
+
+
+# -- the plugin folder is the plugin, and only the plugin ------------------------------------------
+# The directory scans, and an installer receives, the plugin folder and nothing else. Development files
+# (tests, scripts, CI) inside it would be installed on every user's machine and read by the scanner, and
+# the submission's plugin path cannot be changed after it is made. These tests keep them out.
+
+# every file the plugin ships. A new one is a decision: add it here on purpose.
+PLUGIN_FILES = {
+    ".claude-plugin/icon.png", ".claude-plugin/plugin.json", "README.md", "LICENSE",
+    "skills/generate/SKILL.md",
+}
+DEVELOPMENT_ENTRIES = {"tests", "scripts", ".github", "requirements-dev.txt", "reports"}
+
+
+def test_the_plugin_folder_holds_exactly_the_files_the_plugin_ships():
+    shipped = {
+        str(path.relative_to(PLUGIN_DIR)) for path in PLUGIN_DIR.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts
+    }
+
+    assert shipped == PLUGIN_FILES
+
+
+def test_no_development_file_is_inside_the_plugin_folder():
+    assert not [entry.name for entry in PLUGIN_DIR.iterdir() if entry.name in DEVELOPMENT_ENTRIES]
+
+
+def test_the_plugin_ships_no_hook_server_agent_or_script():
+    # The README tells users the plugin is one skill and nothing else; that has to stay true.
+    for name in ("hooks", "agents", "commands", "bin", ".mcp.json", ".lsp.json", "monitors", "scripts"):
+        assert not (PLUGIN_DIR / name).exists(), name
+
+
+def test_the_icon_is_a_square_png_the_directory_accepts():
+    data = ICON_PATH.read_bytes()
+
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "the directory accepts PNG and JPEG, not SVG or WebP"
+    width, height = struct.unpack(">II", data[16:24])
+    assert width == height, "the icon must be square"
+    assert 512 <= width <= 2048, "the directory takes 512 to 2048 px on each side"
+    assert len(data) < 2 * 1024 * 1024, "the directory takes under 2 MB"
+
+
+def test_the_plugin_readme_is_long_enough_and_says_what_the_plugin_runs_and_sends():
+    readme = README_PATH.read_text(encoding="utf-8")
+    prose = re.sub(r"```.*?```", "", readme, flags=re.S)
+
+    assert len(prose.split()) >= 40, "the directory blocks a README under 40 words outside code blocks"
+    assert "## What it runs, sends and fetches" in readme
+    assert "no hooks, no MCP servers, no agents and no scripts" in _squash(readme)
+    # the destination the key goes to is named: the address the user sets, and nowhere else
+    assert "to the address in `ETLGEN_BASE_URL`" in _squash(readme)
+
+
+def test_the_repository_readme_points_at_the_plugin_readme_and_does_not_replace_it():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "(plugin/README.md)" in readme
+    assert README_PATH != ROOT / "README.md"

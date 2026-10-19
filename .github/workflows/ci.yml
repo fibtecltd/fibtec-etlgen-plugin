@@ -26,8 +26,11 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
-      - name: claude plugin validate --strict
+      - name: claude plugin validate --strict (the marketplace)
         run: claude plugin validate . --strict
+
+      - name: claude plugin validate --strict (the plugin)
+        run: claude plugin validate ./plugin --strict
 
       - name: Install the test dependencies (the published etlgen-client, pytest)
         run: pip install -r requirements-dev.txt
