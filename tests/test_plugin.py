@@ -394,6 +394,16 @@ def test_the_plugin_readme_is_long_enough_and_says_what_the_plugin_runs_and_send
     assert "to the address in `ETLGEN_BASE_URL`" in _squash(readme)
 
 
+def test_the_plugin_readme_says_what_the_service_does_with_the_content_and_points_nowhere_for_it():
+    readme = _squash(README_PATH.read_text(encoding="utf-8"))
+
+    # What happens to the content is stated here, not left to pages that say nothing about it: an earlier
+    # version told readers "Fibtec's own pages say how the service handles what it receives", and they did not.
+    assert "It does not store the content or the generated code." in readme
+    assert "language-model provider" in readme
+    assert "own pages say" not in readme
+
+
 def test_the_repository_readme_points_at_the_plugin_readme_and_does_not_replace_it():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 

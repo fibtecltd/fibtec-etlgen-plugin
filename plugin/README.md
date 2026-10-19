@@ -75,8 +75,11 @@ for one job, or the result failed a safety check).
   Claude Code's permission prompt, and Claude asks for your yes first.
 - **What is sent, and where:** `etlgen` sends the content of the source and destination files you point it at,
   the job's options, and your API key to the address in `ETLGEN_BASE_URL` (the ETL Integrator's key API) and to
-  nowhere else. The plugin itself makes no network request. Fibtec's own pages say how the service handles what it
-  receives: <https://etlgen.fibtec.co.uk>.
+  nowhere else. The plugin itself makes no network request.
+- **What the service does with it:** to generate and check the result it passes the content to a language-model
+  provider (Anthropic's Claude models). It does not store the content or the generated code. It keeps a record of
+  each job (for example its size, field counts, timings, tier and price, and your organisation), and its tests
+  hold it to that list. The `etlgen` command writes the result only under the directory you agree on.
 - **What is read:** the files you name, and the two environment variables above. Claude is told never to print,
   log or write the key; the command reads it from your environment, not from Claude.
 
